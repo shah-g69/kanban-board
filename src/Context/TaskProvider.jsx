@@ -32,6 +32,14 @@ const EMPTY_ORDER = {
   done: [],
 };
 
+const statusLabels = {
+  todo: "Todo",
+  "in-progress": "In Progress",
+  done: "Done",
+};
+
+const MAX_ACTIVITY_EVENTS = 50;
+
 const initialTasks = [
   {
     id: "1",
@@ -106,7 +114,7 @@ function buildInitialColumnOrder(taskList) {
   };
 }
 
-function sanitizeProject(projectTasks, projectOrder) {
+function sanitizeProject(projectTasks, projectOrder, projectActivity) {
   const tasks = Array.isArray(projectTasks) ? projectTasks : [];
   const ids = new Set(tasks.map((task) => task.id));
   const columnOrder = {};
@@ -119,7 +127,11 @@ function sanitizeProject(projectTasks, projectOrder) {
     columnOrder[columnId] = list.filter((id) => ids.has(id));
   }
 
-  return { tasks, columnOrder };
+  return {
+    tasks,
+    columnOrder,
+    activity: Array.isArray(projectActivity) ? projectActivity : [],
+  };
 }
 
 function createDefaultState() {
@@ -130,6 +142,7 @@ function createDefaultState() {
       [DEFAULT_PROJECT.id]: {
         tasks: initialTasks,
         columnOrder: buildInitialColumnOrder(initialTasks),
+        activity: [],
       },
     },
   };
@@ -156,7 +169,8 @@ function loadState() {
       for (const project of parsed.projects) {
         projectData[project.id] = sanitizeProject(
           parsed.projectData[project.id]?.tasks,
-          parsed.projectData[project.id]?.columnOrder
+          parsed.projectData[project.id]?.columnOrder,
+          parsed.projectData[project.id]?.activity
         );
       }
 
@@ -175,7 +189,8 @@ function loadState() {
         projectData: {
           [DEFAULT_PROJECT.id]: sanitizeProject(
             parsed.tasks,
-            parsed.columnOrder
+            parsed.columnOrder,
+            parsed.activity
           ),
         },
       };
@@ -297,7 +312,11 @@ export function TaskProvider({ children }) {
         activeProjectId: project.id,
         projectData: {
           ...current.projectData,
-          [project.id]: { tasks: [], columnOrder: { ...EMPTY_ORDER } },
+          [project.id]: {
+            tasks: [],
+            columnOrder: { ...EMPTY_ORDER },
+            activity: [],
+          },
         },
       };
     });
@@ -330,16 +349,57 @@ export function TaskProvider({ children }) {
           data.tasks
         ),
       },
+      activity: [
+        {
+          id: crypto.randomUUID(),
+          type: "created",
+          message: `Created task "${newTask.title}"`,
+          timestamp: Date.now(),
+        },
+        ...(data.activity ?? []),
+      ].slice(0, MAX_ACTIVITY_EVENTS),
     }));
   }
 
   function updateTask(taskId, updatedData) {
-    updateActiveProject((data) => ({
-      ...data,
-      tasks: data.tasks.map((task) =>
-        task.id === taskId ? { ...task, ...updatedData } : task
-      ),
-    }));
+    updateActiveProject((data) => {
+      const task = data.tasks.find(
+        (currentTask) => currentTask.id === taskId
+      );
+
+      if (!task) {
+        return data;
+      }
+
+      let activity = data.activity ?? [];
+      const nextStatus = updatedData.status;
+
+      if (nextStatus && nextStatus !== task.status) {
+        const isCompleted = nextStatus === "done";
+
+        activity = [
+          {
+            id: crypto.randomUUID(),
+            type: isCompleted ? "completed" : "moved",
+            message: isCompleted
+              ? `Completed "${task.title}"`
+              : `Moved "${task.title}" to ${statusLabels[nextStatus]}`,
+            timestamp: Date.now(),
+          },
+          ...activity,
+        ].slice(0, MAX_ACTIVITY_EVENTS);
+      }
+
+      return {
+        ...data,
+        tasks: data.tasks.map((currentTask) =>
+          currentTask.id === taskId
+            ? { ...currentTask, ...updatedData }
+            : currentTask
+        ),
+        activity,
+      };
+    });
   }
 
   function deleteTask(taskId) {
@@ -362,6 +422,15 @@ export function TaskProvider({ children }) {
             (id) => id !== taskId
           ),
         },
+        activity: [
+          {
+            id: crypto.randomUUID(),
+            type: "deleted",
+            message: `Deleted task "${task.title}"`,
+            timestamp: Date.now(),
+          },
+          ...(data.activity ?? []),
+        ].slice(0, MAX_ACTIVITY_EVENTS),
       };
     });
   }
@@ -381,6 +450,7 @@ export function TaskProvider({ children }) {
         updateTask,
         deleteTask,
         setColumnOrder,
+        activity: activeProjectData.activity ?? [],
       }}
     >
       {children}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Check,
   ChevronsUpDown,
+  History,
   KanbanSquare,
   LayoutDashboard,
   Pencil,
@@ -13,6 +14,7 @@ import {
 const navItems = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "board", label: "Board", icon: KanbanSquare },
+  { id: "activity", label: "Activity", icon: History },
 ];
 
 function Sidebar({

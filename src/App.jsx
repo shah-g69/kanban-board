@@ -2,6 +2,7 @@ import { useState } from "react";
 import { KanbanSquare, ListTodo, Moon, PanelLeft, Sun } from "lucide-react";
 import KanbanBoard from "./components/KanbanBoard";
 import Overview from "./components/Overview";
+import Activity from "./components/Activity";
 import Sidebar from "./components/Sidebar";
 import { useTasks } from "./Hooks/useTasks";
 import { useTaskFilters } from "./Hooks/useTaskFilters";
@@ -16,6 +17,7 @@ function App() {
     addProject,
     renameProject,
     deleteProject,
+    activity,
   } = useTasks();
   const { theme, toggleTheme } = useTheme();
 
@@ -153,7 +155,9 @@ function App() {
         </header>
 
         <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
-          {view === "overview" ? (
+          {view === "activity" ? (
+            <Activity activity={activity} />
+          ) : view === "overview" ? (
             <Overview
               tasks={tasks}
               onGoToBoard={() => setView("board")}
