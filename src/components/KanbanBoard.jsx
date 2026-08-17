@@ -4,6 +4,7 @@ import {
   DragOverlay,
   PointerSensor,
   closestCorners,
+  defaultDropAnimation,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -14,6 +15,7 @@ import TaskCard from "./TaskCard";
 import TaskModal from "./TaskModal";
 import FiltreBar from "./FiltreBar";
 import SearchBar from "./SearchBar";
+import EmptyState from "./EmptyState";
 import { useTasks } from "../Hooks/useTasks";
 
 const columns = [
@@ -157,27 +159,30 @@ function KanbanBoard({
         />
       </div>
 
-      {hasActiveFilters && tasks.length === 0 && (
-        <div className="mb-6 rounded-2xl border border-dashed border-slate-300 bg-white/60 px-4 py-10 text-center dark:border-white/15 dark:bg-white/[0.03]">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
-            No tasks match your current filters.
-          </p>
-          <button
-            type="button"
-            onClick={onResetFilters}
-            className="mt-2 text-sm font-medium text-violet-600 transition-colors hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300"
-          >
-            Clear all filters
-          </button>
-        </div>
-      )}
+      {tasks.length === 0 && !hasActiveFilters ? (
+        <EmptyState
+          title="No tasks yet"
+          description="This board is empty. Create your first task to get things moving."
+          actionLabel="Create task"
+          onAction={() => setIsModalOpen(true)}
+        />
+      ) : (
+        <>
+          {hasActiveFilters && tasks.length === 0 && (
+            <EmptyState
+              title="No tasks match your filters"
+              description="Try adjusting your search or filter settings to see more tasks."
+              actionLabel="Clear filters"
+              onAction={onResetFilters}
+            />
+          )}
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCorners}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           {columns.map((column) => {
             const orderedIds = columnOrder[column.id] || [];
@@ -200,12 +205,20 @@ function KanbanBoard({
           })}
         </div>
 
-        <DragOverlay>
-          {activeTask ? (
-            <TaskCard task={activeTask} />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+            <DragOverlay
+              dropAnimation={{
+                ...defaultDropAnimation,
+                duration: 260,
+                easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+              }}
+            >
+              {activeTask ? (
+                <TaskCard task={activeTask} disableEntranceAnimation />
+              ) : null}
+            </DragOverlay>
+          </DndContext>
+        </>
+      )}
 
       {isModalOpen && (
         <TaskModal

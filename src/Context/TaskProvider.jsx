@@ -11,6 +11,27 @@ const STORAGE_KEY = "kanban:state";
 
 const COLUMN_IDS = ["todo", "in-progress", "done"];
 
+const PROJECT_COLORS = [
+  "#8b5cf6",
+  "#0ea5e9",
+  "#f59e0b",
+  "#10b981",
+  "#f43f5e",
+  "#6366f1",
+];
+
+const DEFAULT_PROJECT = {
+  id: "default",
+  name: "My Workspace",
+  color: "#8b5cf6",
+};
+
+const EMPTY_ORDER = {
+  todo: [],
+  "in-progress": [],
+  done: [],
+};
+
 const initialTasks = [
   {
     id: "1",
@@ -66,6 +87,35 @@ function buildInitialColumnOrder(taskList) {
   };
 }
 
+function sanitizeProject(projectTasks, projectOrder) {
+  const tasks = Array.isArray(projectTasks) ? projectTasks : [];
+  const ids = new Set(tasks.map((task) => task.id));
+  const columnOrder = {};
+
+  for (const columnId of COLUMN_IDS) {
+    const list = Array.isArray(projectOrder?.[columnId])
+      ? projectOrder[columnId]
+      : [];
+
+    columnOrder[columnId] = list.filter((id) => ids.has(id));
+  }
+
+  return { tasks, columnOrder };
+}
+
+function createDefaultState() {
+  return {
+    projects: [DEFAULT_PROJECT],
+    activeProjectId: DEFAULT_PROJECT.id,
+    projectData: {
+      [DEFAULT_PROJECT.id]: {
+        tasks: initialTasks,
+        columnOrder: buildInitialColumnOrder(initialTasks),
+      },
+    },
+  };
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -76,22 +126,43 @@ function loadState() {
 
     const parsed = JSON.parse(raw);
 
-    if (!Array.isArray(parsed.tasks) || !parsed.columnOrder) {
-      return null;
+    // Current shape: { projects, activeProjectId, projectData }
+    if (
+      Array.isArray(parsed.projects) &&
+      parsed.projectData &&
+      parsed.activeProjectId
+    ) {
+      const projectData = {};
+
+      for (const project of parsed.projects) {
+        projectData[project.id] = sanitizeProject(
+          parsed.projectData[project.id]?.tasks,
+          parsed.projectData[project.id]?.columnOrder
+        );
+      }
+
+      return {
+        projects: parsed.projects,
+        activeProjectId: parsed.activeProjectId,
+        projectData,
+      };
     }
 
-    const ids = new Set(parsed.tasks.map((task) => task.id));
-    const columnOrder = {};
-
-    for (const columnId of COLUMN_IDS) {
-      const list = Array.isArray(parsed.columnOrder[columnId])
-        ? parsed.columnOrder[columnId]
-        : [];
-
-      columnOrder[columnId] = list.filter((id) => ids.has(id));
+    // Legacy single-board shape: { tasks, columnOrder }
+    if (Array.isArray(parsed.tasks)) {
+      return {
+        projects: [DEFAULT_PROJECT],
+        activeProjectId: DEFAULT_PROJECT.id,
+        projectData: {
+          [DEFAULT_PROJECT.id]: sanitizeProject(
+            parsed.tasks,
+            parsed.columnOrder
+          ),
+        },
+      };
     }
 
-    return { tasks: parsed.tasks, columnOrder };
+    return null;
   } catch {
     // Corrupted storage — fall back to the seed data.
     return null;
@@ -99,26 +170,32 @@ function loadState() {
 }
 
 export function TaskProvider({ children }) {
-  const [tasks, setTasks] = useState(() => {
-    const saved = loadState();
-    return saved ? saved.tasks : initialTasks;
-  });
+  const [state, setState] = useState(() => loadState() ?? createDefaultState());
 
-  const [columnOrder, setColumnOrderState] = useState(() => {
-    const saved = loadState();
-    return saved ? saved.columnOrder : buildInitialColumnOrder(initialTasks);
-  });
+  const { projects, activeProjectId, projectData } = state;
+
+  const activeProjectData =
+    projectData[activeProjectId] ?? { tasks: [], columnOrder: EMPTY_ORDER };
 
   useEffect(() => {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ tasks, columnOrder })
-    );
-  }, [tasks, columnOrder]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
 
-  function insertTaskByPriority(ids, newTask) {
+  function updateActiveProject(updater) {
+    setState((current) => ({
+      ...current,
+      projectData: {
+        ...current.projectData,
+        [current.activeProjectId]: updater(
+          current.projectData[current.activeProjectId]
+        ),
+      },
+    }));
+  }
+
+  function insertTaskByPriority(ids, newTask, existingTasks) {
     const insertIndex = ids.findIndex((id) => {
-      const existing = tasks.find((task) => task.id === id);
+      const existing = existingTasks.find((task) => task.id === id);
 
       return (
         existing &&
@@ -131,10 +208,46 @@ export function TaskProvider({ children }) {
     return next;
   }
 
-  function setColumnOrder(columnId, orderedIds) {
-    setColumnOrderState((current) => ({
+  function setActiveProject(projectId) {
+    setState((current) => ({
       ...current,
-      [columnId]: orderedIds,
+      activeProjectId: projectId,
+    }));
+  }
+
+  function addProject(name) {
+    const trimmed = name.trim();
+
+    if (!trimmed) {
+      return;
+    }
+
+    setState((current) => {
+      const project = {
+        id: crypto.randomUUID(),
+        name: trimmed,
+        color: PROJECT_COLORS[current.projects.length % PROJECT_COLORS.length],
+      };
+
+      return {
+        ...current,
+        projects: [...current.projects, project],
+        activeProjectId: project.id,
+        projectData: {
+          ...current.projectData,
+          [project.id]: { tasks: [], columnOrder: { ...EMPTY_ORDER } },
+        },
+      };
+    });
+  }
+
+  function setColumnOrder(columnId, orderedIds) {
+    updateActiveProject((data) => ({
+      ...data,
+      columnOrder: {
+        ...data.columnOrder,
+        [columnId]: orderedIds,
+      },
     }));
   }
 
@@ -145,48 +258,64 @@ export function TaskProvider({ children }) {
       status: "todo",
     };
 
-    setTasks((currentTasks) => [...currentTasks, newTask]);
-    setColumnOrderState((current) => ({
-      ...current,
-      todo: insertTaskByPriority(current.todo, newTask),
+    updateActiveProject((data) => ({
+      tasks: [...data.tasks, newTask],
+      columnOrder: {
+        ...data.columnOrder,
+        todo: insertTaskByPriority(
+          data.columnOrder.todo,
+          newTask,
+          data.tasks
+        ),
+      },
     }));
   }
 
   function updateTask(taskId, updatedData) {
-    setTasks((currentTasks) =>
-      currentTasks.map((task) =>
-        task.id === taskId
-          ? { ...task, ...updatedData }
-          : task
-      )
-    );
+    updateActiveProject((data) => ({
+      ...data,
+      tasks: data.tasks.map((task) =>
+        task.id === taskId ? { ...task, ...updatedData } : task
+      ),
+    }));
   }
 
   function deleteTask(taskId) {
-    const task = tasks.find((currentTask) => currentTask.id === taskId);
+    updateActiveProject((data) => {
+      const task = data.tasks.find(
+        (currentTask) => currentTask.id === taskId
+      );
 
-    setTasks((currentTasks) =>
-      currentTasks.filter((currentTask) => currentTask.id !== taskId)
-    );
+      if (!task) {
+        return data;
+      }
 
-    if (task) {
-      setColumnOrderState((current) => ({
-        ...current,
-        [task.status]: current[task.status].filter(
-          (id) => id !== taskId
+      return {
+        tasks: data.tasks.filter(
+          (currentTask) => currentTask.id !== taskId
         ),
-      }));
-    }
+        columnOrder: {
+          ...data.columnOrder,
+          [task.status]: data.columnOrder[task.status].filter(
+            (id) => id !== taskId
+          ),
+        },
+      };
+    });
   }
 
   return (
     <TaskContext.Provider
       value={{
-        tasks,
+        projects,
+        activeProjectId,
+        setActiveProject,
+        addProject,
+        tasks: activeProjectData.tasks,
+        columnOrder: activeProjectData.columnOrder,
         addTask,
         updateTask,
         deleteTask,
-        columnOrder,
         setColumnOrder,
       }}
     >

@@ -47,22 +47,43 @@ function KanbanColumn({ id, title, tasks, onAddTask }) {
         </h2>
 
         <span
-          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${accent.badge}`}
+          key={tasks.length}
+          className={`animate-pop rounded-full px-2.5 py-0.5 text-xs font-semibold ${accent.badge}`}
         >
           {tasks.length}
         </span>
       </div>
 
-      <div className="min-h-20 flex-1 space-y-3">
-        <SortableContext
-          items={tasks.map((task) => task.id)}
-          strategy={verticalListSortingStrategy}
+      {tasks.length === 0 ? (
+        <div
+          className={`flex min-h-24 flex-col items-center justify-center rounded-xl border border-dashed px-4 py-8 text-center transition-colors ${
+            isOver
+              ? "border-violet-400 bg-violet-50/60 dark:bg-violet-500/10"
+              : "border-slate-300/80 dark:border-white/10"
+          }`}
         >
-          {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
-          ))}
-        </SortableContext>
-      </div>
+          <p
+            className={`text-xs font-medium ${
+              isOver
+                ? "text-violet-600 dark:text-violet-300"
+                : "text-slate-400 dark:text-slate-500"
+            }`}
+          >
+            Drop tasks here
+          </p>
+        </div>
+      ) : (
+        <div className="min-h-20 flex-1 space-y-3">
+          <SortableContext
+            items={tasks.map((task) => task.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {tasks.map((task) => (
+              <TaskCard key={task.id} task={task} />
+            ))}
+          </SortableContext>
+        </div>
+      )}
 
       <button
         onClick={onAddTask}

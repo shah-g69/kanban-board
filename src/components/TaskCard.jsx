@@ -23,7 +23,7 @@ const priorityStyles = {
   },
 };
 
-function TaskCard({ task }) {
+function TaskCard({ task, disableEntranceAnimation = false }) {
   const { deleteTask, updateTask } = useTasks();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -69,7 +69,7 @@ function TaskCard({ task }) {
         {...attributes}
         className={`group cursor-grab rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg hover:shadow-slate-900/5 active:cursor-grabbing dark:border-white/10 dark:bg-slate-900 dark:hover:border-violet-500/30 dark:hover:shadow-black/40 ${
           isDragging ? "rotate-1 opacity-50" : ""
-        }`}
+        } ${disableEntranceAnimation ? "" : "animate-card-in"}`}
       >
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-medium leading-snug text-slate-800 dark:text-slate-100">
