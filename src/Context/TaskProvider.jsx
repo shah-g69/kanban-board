@@ -40,6 +40,7 @@ const initialTasks = [
     status: "todo",
     priority: "high",
     labels: ["Design"],
+    dueDate: "2026-08-10",
   },
   {
     id: "2",
@@ -56,6 +57,7 @@ const initialTasks = [
     status: "in-progress",
     priority: "high",
     labels: ["Frontend"],
+    dueDate: "2026-08-20",
   },
   {
     id: "4",
@@ -67,21 +69,38 @@ const initialTasks = [
   },
 ];
 
-function sortByPriority(list) {
-  return [...list].sort(
-    (a, b) => priorityRank[a.priority] - priorityRank[b.priority]
-  );
+function taskSortScore(task) {
+  return {
+    due: task.dueDate
+      ? new Date(`${task.dueDate}T00:00:00`).getTime()
+      : Number.POSITIVE_INFINITY,
+    priority: priorityRank[task.priority] ?? 1,
+  };
+}
+
+// Default order: deadlines first (most overdue at the top), then by
+// priority, with undated tasks last. Manual drag reordering overrides
+// this per column.
+function compareScores(a, b) {
+  if (a.due !== b.due) {
+    return a.due - b.due;
+  }
+  return a.priority - b.priority;
+}
+
+function sortTasks(list) {
+  return [...list].sort((a, b) => compareScores(taskSortScore(a), taskSortScore(b)));
 }
 
 function buildInitialColumnOrder(taskList) {
   return {
-    todo: sortByPriority(
+    todo: sortTasks(
       taskList.filter((task) => task.status === "todo")
     ).map((task) => task.id),
-    "in-progress": sortByPriority(
+    "in-progress": sortTasks(
       taskList.filter((task) => task.status === "in-progress")
     ).map((task) => task.id),
-    done: sortByPriority(
+    done: sortTasks(
       taskList.filter((task) => task.status === "done")
     ).map((task) => task.id),
   };
@@ -193,13 +212,14 @@ export function TaskProvider({ children }) {
     }));
   }
 
-  function insertTaskByPriority(ids, newTask, existingTasks) {
+  function insertTaskByDeadline(ids, newTask, existingTasks) {
+    const newScore = taskSortScore(newTask);
     const insertIndex = ids.findIndex((id) => {
       const existing = existingTasks.find((task) => task.id === id);
 
       return (
         existing &&
-        priorityRank[existing.priority] > priorityRank[newTask.priority]
+        compareScores(newScore, taskSortScore(existing)) < 0
       );
     });
 
@@ -213,6 +233,48 @@ export function TaskProvider({ children }) {
       ...current,
       activeProjectId: projectId,
     }));
+  }
+
+  function renameProject(projectId, name) {
+    const trimmed = name.trim();
+
+    if (!trimmed) {
+      return;
+    }
+
+    setState((current) => ({
+      ...current,
+      projects: current.projects.map((project) =>
+        project.id === projectId
+          ? { ...project, name: trimmed }
+          : project
+      ),
+    }));
+  }
+
+  function deleteProject(projectId) {
+    setState((current) => {
+      // Keep at least one project.
+      if (current.projects.length <= 1) {
+        return current;
+      }
+
+      const projects = current.projects.filter(
+        (project) => project.id !== projectId
+      );
+      const projectData = { ...current.projectData };
+
+      delete projectData[projectId];
+
+      return {
+        projects,
+        projectData,
+        activeProjectId:
+          current.activeProjectId === projectId
+            ? projects[0].id
+            : current.activeProjectId,
+      };
+    });
   }
 
   function addProject(name) {
@@ -262,7 +324,7 @@ export function TaskProvider({ children }) {
       tasks: [...data.tasks, newTask],
       columnOrder: {
         ...data.columnOrder,
-        todo: insertTaskByPriority(
+        todo: insertTaskByDeadline(
           data.columnOrder.todo,
           newTask,
           data.tasks
@@ -311,6 +373,8 @@ export function TaskProvider({ children }) {
         activeProjectId,
         setActiveProject,
         addProject,
+        renameProject,
+        deleteProject,
         tasks: activeProjectData.tasks,
         columnOrder: activeProjectData.columnOrder,
         addTask,

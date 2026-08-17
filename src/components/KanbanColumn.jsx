@@ -27,7 +27,13 @@ const columnAccents = {
   },
 };
 
-function KanbanColumn({ id, title, tasks, onAddTask }) {
+function KanbanColumn({
+  id,
+  title,
+  tasks,
+  onAddTask,
+  highlightedTaskId,
+}) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const accent = columnAccents[id] ?? columnAccents.todo;
 
@@ -78,9 +84,13 @@ function KanbanColumn({ id, title, tasks, onAddTask }) {
             items={tasks.map((task) => task.id)}
             strategy={verticalListSortingStrategy}
           >
-            {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
-            ))}
+          {tasks.map((task) => (
+            <TaskCard
+              key={task.id}
+              task={task}
+              highlighted={task.id === highlightedTaskId}
+            />
+          ))}
           </SortableContext>
         </div>
       )}

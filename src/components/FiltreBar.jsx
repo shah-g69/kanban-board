@@ -13,7 +13,15 @@ const priorityDotStyles = {
   low: "bg-emerald-500",
 };
 
+const statusLabels = {
+  todo: "Todo",
+  "in-progress": "In Progress",
+  done: "Done",
+};
+
 function FiltreBar({
+  status,
+  onStatusChange,
   priority,
   onPriorityChange,
   label,
@@ -70,6 +78,18 @@ function FiltreBar({
             </option>
           ))}
         </select>
+      )}
+
+      {status !== "all" && (
+        <button
+          type="button"
+          onClick={() => onStatusChange("all")}
+          className="flex items-center gap-1.5 rounded-xl bg-violet-50 px-2.5 py-2 text-xs font-semibold text-violet-700 transition-colors hover:bg-violet-100 dark:bg-violet-500/15 dark:text-violet-300 dark:hover:bg-violet-500/25"
+          title="Remove status filter"
+        >
+          {statusLabels[status] ?? status}
+          <X className="h-3.5 w-3.5" />
+        </button>
       )}
 
       {hasActiveFilters && (

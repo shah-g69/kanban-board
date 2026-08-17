@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { Flag, Pencil, Trash2 } from "lucide-react";
+import { CalendarDays, Flag, Pencil, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTasks } from "../Hooks/useTasks";
+import { getDueDateInfo, getDueProgress } from "../utils/dueDate";
 import TaskModal from "./TaskModal";
 
 const priorityStyles = {
@@ -23,7 +24,11 @@ const priorityStyles = {
   },
 };
 
-function TaskCard({ task, disableEntranceAnimation = false }) {
+function TaskCard({
+  task,
+  disableEntranceAnimation = false,
+  highlighted = false,
+}) {
   const { deleteTask, updateTask } = useTasks();
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
@@ -44,6 +49,12 @@ function TaskCard({ task, disableEntranceAnimation = false }) {
   };
 
   const priorityStyle = priorityStyles[task.priority] ?? priorityStyles.medium;
+  const isDone = task.status === "done";
+  const dueDateInfo = task.dueDate
+    ? getDueDateInfo(task.dueDate, isDone)
+    : null;
+  const dueBar =
+    task.dueDate && !isDone ? getDueProgress(task.dueDate) : null;
 
   function handleUpdate(updatedData) {
     updateTask(task.id, updatedData);
@@ -67,9 +78,12 @@ function TaskCard({ task, disableEntranceAnimation = false }) {
         style={style}
         {...listeners}
         {...attributes}
+        data-task-id={task.id}
         className={`group cursor-grab rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-lg hover:shadow-slate-900/5 active:cursor-grabbing dark:border-white/10 dark:bg-slate-900 dark:hover:border-violet-500/30 dark:hover:shadow-black/40 ${
           isDragging ? "rotate-1 opacity-50" : ""
-        } ${disableEntranceAnimation ? "" : "animate-card-in"}`}
+        } ${disableEntranceAnimation ? "" : "animate-card-in"} ${
+          highlighted ? "animate-flash" : ""
+        }`}
       >
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-medium leading-snug text-slate-800 dark:text-slate-100">
@@ -116,14 +130,36 @@ function TaskCard({ task, disableEntranceAnimation = false }) {
           </div>
         )}
 
-        <div className="mt-3 flex items-center justify-between">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <span
             className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium capitalize ${priorityStyle.badge}`}
           >
             <Flag className={`h-3 w-3 ${priorityStyle.flag}`} />
             {task.priority}
           </span>
+
+          {dueDateInfo && (
+            <span
+              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ${dueDateInfo.className}`}
+              title={task.dueDate}
+            >
+              <CalendarDays className="h-3 w-3" />
+              {dueDateInfo.label}
+            </span>
+          )}
         </div>
+
+        {dueBar && (
+          <div
+            className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/10"
+            title={dueDateInfo.label}
+          >
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${dueBar.barClass}`}
+              style={{ width: `${dueBar.pct}%` }}
+            />
+          </div>
+        )}
       </div>
 
       {isEditModalOpen && (

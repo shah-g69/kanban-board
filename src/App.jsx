@@ -14,17 +14,22 @@ function App() {
     activeProjectId,
     setActiveProject,
     addProject,
+    renameProject,
+    deleteProject,
   } = useTasks();
   const { theme, toggleTheme } = useTheme();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [view, setView] = useState("board");
+  const [highlightedTaskId, setHighlightedTaskId] = useState(null);
 
   const {
     filteredTasks,
     searchTerm,
     setSearchTerm,
+    statusFilter,
+    setStatusFilter,
     priorityFilter,
     setPriorityFilter,
     labelFilter,
@@ -53,6 +58,14 @@ function App() {
     setMobileSidebarOpen(false);
   }
 
+  function handleFocusTask(taskId) {
+    resetFilters();
+    setView("board");
+    setHighlightedTaskId(taskId);
+
+    window.setTimeout(() => setHighlightedTaskId(null), 2000);
+  }
+
   return (
     <div className="flex min-h-screen">
       <Sidebar
@@ -63,6 +76,8 @@ function App() {
         activeProjectId={activeProjectId}
         onSelectProject={handleSelectProject}
         onCreateProject={addProject}
+        onRenameProject={renameProject}
+        onDeleteProject={deleteProject}
         view={view}
         onNavigate={setView}
       />
@@ -139,12 +154,26 @@ function App() {
 
         <main className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6">
           {view === "overview" ? (
-            <Overview tasks={tasks} onGoToBoard={() => setView("board")} />
+            <Overview
+              tasks={tasks}
+              onGoToBoard={() => setView("board")}
+              onSelectStatus={(selectedStatus) => {
+                setStatusFilter(selectedStatus);
+                setView("board");
+              }}
+              onSelectPriority={(selectedPriority) => {
+                setPriorityFilter(selectedPriority);
+                setView("board");
+              }}
+              onFocusTask={handleFocusTask}
+            />
           ) : (
             <KanbanBoard
               tasks={filteredTasks}
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
+              status={statusFilter}
+              onStatusChange={setStatusFilter}
               priority={priorityFilter}
               onPriorityChange={setPriorityFilter}
               label={labelFilter}
@@ -152,6 +181,7 @@ function App() {
               labels={labelOptions}
               hasActiveFilters={hasActiveFilters}
               onResetFilters={resetFilters}
+              highlightedTaskId={highlightedTaskId}
             />
           )}
         </main>

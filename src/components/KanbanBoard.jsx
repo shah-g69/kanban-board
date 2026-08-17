@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -37,6 +37,8 @@ function KanbanBoard({
   tasks,
   searchTerm,
   onSearchChange,
+  status,
+  onStatusChange,
   priority,
   onPriorityChange,
   label,
@@ -44,11 +46,28 @@ function KanbanBoard({
   labels,
   hasActiveFilters,
   onResetFilters,
+  highlightedTaskId,
 }) {
   const { addTask, updateTask, columnOrder, setColumnOrder } = useTasks();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTask, setActiveTask] = useState(null);
+
+  // Bring a highlighted task into view (e.g. from the Overview deadlines list).
+  useEffect(() => {
+    if (!highlightedTaskId) {
+      return;
+    }
+
+    const element = document.querySelector(
+      `[data-task-id="${highlightedTaskId}"]`
+    );
+
+    element?.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+  }, [highlightedTaskId]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -149,6 +168,8 @@ function KanbanBoard({
         <SearchBar value={searchTerm} onChange={onSearchChange} />
 
         <FiltreBar
+          status={status}
+          onStatusChange={onStatusChange}
           priority={priority}
           onPriorityChange={onPriorityChange}
           label={label}
@@ -200,6 +221,7 @@ function KanbanBoard({
                 title={column.title}
                 tasks={columnTasks}
                 onAddTask={() => setIsModalOpen(true)}
+                highlightedTaskId={highlightedTaskId}
               />
             );
           })}

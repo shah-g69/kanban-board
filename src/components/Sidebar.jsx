@@ -4,7 +4,9 @@ import {
   ChevronsUpDown,
   KanbanSquare,
   LayoutDashboard,
+  Pencil,
   Plus,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -21,12 +23,16 @@ function Sidebar({
   activeProjectId,
   onSelectProject,
   onCreateProject,
+  onRenameProject,
+  onDeleteProject,
   view,
   onNavigate,
 }) {
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [addingProject, setAddingProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [renamingId, setRenamingId] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const activeProject =
     projects.find((project) => project.id === activeProjectId) ?? projects[0];
@@ -39,6 +45,32 @@ function Sidebar({
       onCreateProject(newProjectName);
       setNewProjectName("");
       setAddingProject(false);
+    }
+  }
+
+  function handleStartRename(project) {
+    setRenameValue(project.name);
+    setRenamingId(project.id);
+  }
+
+  function handleRenameProject(event) {
+    event.preventDefault();
+
+    if (renamingId) {
+      onRenameProject(renamingId, renameValue);
+    }
+
+    setRenamingId(null);
+    setRenameValue("");
+  }
+
+  function handleDeleteProject(project) {
+    const confirmed = window.confirm(
+      `Delete "${project.name}"? This will permanently remove all of its tasks.`
+    );
+
+    if (confirmed) {
+      onDeleteProject(project.id);
     }
   }
 
@@ -85,27 +117,90 @@ function Sidebar({
               </p>
 
               {projects.map((project) => (
-                <button
+                <div
                   key={project.id}
-                  type="button"
-                  onClick={() => {
-                    onSelectProject(project.id);
-                    setSwitcherOpen(false);
-                    onCloseMobile();
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
+                  className="group flex items-center gap-1 rounded-lg px-1 py-0.5 transition-colors hover:bg-slate-100 dark:hover:bg-white/5"
                 >
-                  <span
-                    className="h-5 w-5 shrink-0 rounded-md"
-                    style={{ backgroundColor: project.color }}
-                  />
-                  <span className="flex-1 truncate text-slate-700 dark:text-slate-200">
-                    {project.name}
-                  </span>
-                  {project.id === activeProjectId && (
-                    <Check className="h-4 w-4 shrink-0 text-violet-500" />
+                  {renamingId === project.id ? (
+                    <form
+                      onSubmit={handleRenameProject}
+                      className="flex w-full items-center gap-1 px-1.5 py-1.5"
+                    >
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(event) => setRenameValue(event.target.value)}
+                        className="w-full rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-sm text-slate-900 outline-none focus:border-violet-500 dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                      />
+                      <button
+                        type="submit"
+                        className="rounded-lg bg-violet-600 p-1.5 text-white transition-colors hover:bg-violet-500"
+                        title="Save name"
+                      >
+                        <Check className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRenamingId(null);
+                          setRenameValue("");
+                        }}
+                        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-white/10"
+                        title="Cancel"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onSelectProject(project.id);
+                          setSwitcherOpen(false);
+                          onCloseMobile();
+                        }}
+                        className="flex flex-1 items-center gap-2.5 rounded-lg px-1.5 py-2 text-left text-sm transition-colors"
+                      >
+                        <span
+                          className="h-5 w-5 shrink-0 rounded-md"
+                          style={{ backgroundColor: project.color }}
+                        />
+                        <span className="flex-1 truncate text-slate-700 dark:text-slate-200">
+                          {project.name}
+                        </span>
+                        {project.id === activeProjectId && (
+                          <Check className="h-4 w-4 shrink-0 text-violet-500" />
+                        )}
+                      </button>
+
+                      <div className="flex shrink-0 md:opacity-0 md:transition-opacity md:duration-150 md:group-hover:opacity-100">
+                        <button
+                          type="button"
+                          onClick={() => handleStartRename(project)}
+                          className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white hover:text-violet-600 dark:hover:bg-slate-900 dark:hover:text-violet-300"
+                          title="Rename project"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteProject(project)}
+                          disabled={projects.length === 1}
+                          className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-white hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-30 dark:hover:bg-slate-900 dark:hover:text-rose-400"
+                          title={
+                            projects.length === 1
+                              ? "You need at least one project"
+                              : "Delete project"
+                          }
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </>
                   )}
-                </button>
+                </div>
               ))}
 
               {addingProject ? (

@@ -42,6 +42,17 @@
       transform: scale(1);
     }
   }
+
+  --animate-flash: flash 1.2s ease-out;
+
+  @keyframes flash {
+    0% {
+      box-shadow: 0 0 0 4px rgb(139 92 246 / 0.45);
+    }
+    100% {
+      box-shadow: 0 0 0 4px rgb(139 92 246 / 0);
+    }
+  }
 }
 
 :root {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Plus, X } from "lucide-react";
+import { CalendarDays, Check, Plus, X } from "lucide-react";
 
 const inputClasses =
   "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-violet-500";
@@ -18,6 +18,7 @@ function TaskModal({
     initialTask?.priority ?? "medium"
   );
   const [label, setLabel] = useState(initialTask?.labels?.[0] ?? "");
+  const [dueDate, setDueDate] = useState(initialTask?.dueDate ?? "");
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -31,6 +32,7 @@ function TaskModal({
       description: description.trim(),
       priority,
       labels: label.trim() ? [label.trim()] : [],
+      dueDate,
     });
   }
 
@@ -110,6 +112,22 @@ function TaskModal({
               placeholder="e.g. Frontend"
               className={inputClasses}
             />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+              Due date
+            </label>
+
+            <div className="relative">
+              <CalendarDays className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(event) => setDueDate(event.target.value)}
+                className={`${inputClasses} pl-9`}
+              />
+            </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
