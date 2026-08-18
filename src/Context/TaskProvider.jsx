@@ -148,6 +148,51 @@ function createDefaultState() {
   };
 }
 
+// Accepts either the current shape ({ projects, activeProjectId,
+// projectData }) or the legacy single-board shape ({ tasks, columnOrder })
+// and returns a normalized state, or null if the data is unusable.
+function normalizeParsedState(parsed) {
+  // Current shape: { projects, activeProjectId, projectData }
+  if (
+    Array.isArray(parsed.projects) &&
+    parsed.projectData &&
+    parsed.activeProjectId
+  ) {
+    const projectData = {};
+
+    for (const project of parsed.projects) {
+      projectData[project.id] = sanitizeProject(
+        parsed.projectData[project.id]?.tasks,
+        parsed.projectData[project.id]?.columnOrder,
+        parsed.projectData[project.id]?.activity
+      );
+    }
+
+    return {
+      projects: parsed.projects,
+      activeProjectId: parsed.activeProjectId,
+      projectData,
+    };
+  }
+
+  // Legacy single-board shape: { tasks, columnOrder }
+  if (Array.isArray(parsed.tasks)) {
+    return {
+      projects: [DEFAULT_PROJECT],
+      activeProjectId: DEFAULT_PROJECT.id,
+      projectData: {
+        [DEFAULT_PROJECT.id]: sanitizeProject(
+          parsed.tasks,
+          parsed.columnOrder,
+          parsed.activity
+        ),
+      },
+    };
+  }
+
+  return null;
+}
+
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -156,47 +201,7 @@ function loadState() {
       return null;
     }
 
-    const parsed = JSON.parse(raw);
-
-    // Current shape: { projects, activeProjectId, projectData }
-    if (
-      Array.isArray(parsed.projects) &&
-      parsed.projectData &&
-      parsed.activeProjectId
-    ) {
-      const projectData = {};
-
-      for (const project of parsed.projects) {
-        projectData[project.id] = sanitizeProject(
-          parsed.projectData[project.id]?.tasks,
-          parsed.projectData[project.id]?.columnOrder,
-          parsed.projectData[project.id]?.activity
-        );
-      }
-
-      return {
-        projects: parsed.projects,
-        activeProjectId: parsed.activeProjectId,
-        projectData,
-      };
-    }
-
-    // Legacy single-board shape: { tasks, columnOrder }
-    if (Array.isArray(parsed.tasks)) {
-      return {
-        projects: [DEFAULT_PROJECT],
-        activeProjectId: DEFAULT_PROJECT.id,
-        projectData: {
-          [DEFAULT_PROJECT.id]: sanitizeProject(
-            parsed.tasks,
-            parsed.columnOrder,
-            parsed.activity
-          ),
-        },
-      };
-    }
-
-    return null;
+    return normalizeParsedState(JSON.parse(raw));
   } catch {
     // Corrupted storage — fall back to the seed data.
     return null;
@@ -435,6 +440,27 @@ export function TaskProvider({ children }) {
     });
   }
 
+  function exportData() {
+    return JSON.stringify(state, null, 2);
+  }
+
+  // Returns true when the import succeeded, false when the JSON is invalid
+  // or doesn't look like a saved workspace.
+  function importData(jsonString) {
+    try {
+      const normalized = normalizeParsedState(JSON.parse(jsonString));
+
+      if (!normalized) {
+        return false;
+      }
+
+      setState(normalized);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   return (
     <TaskContext.Provider
       value={{
@@ -451,6 +477,8 @@ export function TaskProvider({ children }) {
         deleteTask,
         setColumnOrder,
         activity: activeProjectData.activity ?? [],
+        exportData,
+        importData,
       }}
     >
       {children}

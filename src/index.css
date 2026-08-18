@@ -43,7 +43,31 @@
     }
   }
 
+  --animate-toast-in: toast-in 0.35s cubic-bezier(0.21, 1.02, 0.73, 1) both;
+  --animate-toast-out: toast-out 0.25s ease-in both;
   --animate-flash: flash 1.2s ease-out;
+
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes toast-out {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(16px) scale(0.95);
+    }
+  }
 
   @keyframes flash {
     0% {
@@ -81,6 +105,15 @@ body {
 .dark body {
   background-color: #0d1117;
   color: #dbe1ea;
+}
+
+/* Temporarily applied to <html> while the theme flips so the switch is
+   instant instead of animating every element's colors at once. */
+html.theme-no-transition,
+html.theme-no-transition *,
+html.theme-no-transition *::before,
+html.theme-no-transition *::after {
+  transition: none !important;
 }
 
 button,

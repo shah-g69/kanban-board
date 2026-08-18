@@ -7,6 +7,7 @@ import Sidebar from "./components/Sidebar";
 import { useTasks } from "./Hooks/useTasks";
 import { useTaskFilters } from "./Hooks/useTaskFilters";
 import { useTheme } from "./Hooks/useTheme";
+import ToastContainer from "./components/ToastContainer";
 
 function App() {
   const {
@@ -18,6 +19,8 @@ function App() {
     renameProject,
     deleteProject,
     activity,
+    exportData,
+    importData,
   } = useTasks();
   const { theme, toggleTheme } = useTheme();
 
@@ -82,6 +85,8 @@ function App() {
         onDeleteProject={deleteProject}
         view={view}
         onNavigate={setView}
+        onExport={exportData}
+        onImport={importData}
       />
 
       {mobileSidebarOpen && (
@@ -190,6 +195,7 @@ function App() {
           )}
         </main>
       </div>
+      <ToastContainer />
     </div>
   );
 }

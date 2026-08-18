@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { CalendarDays, Flag, Pencil, Trash2 } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useTasks } from "../Hooks/useTasks";
 import { getDueDateInfo, getDueProgress } from "../utils/dueDate";
+import { ToastContext } from "../Context/toastContext";
+import ConfirmDialog from "./ConfirmDialog";
 import TaskModal from "./TaskModal";
 
 const priorityStyles = {
@@ -30,7 +32,9 @@ function TaskCard({
   highlighted = false,
 }) {
   const { deleteTask, updateTask } = useTasks();
+  const { toast } = useContext(ToastContext);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   const {
     attributes,
@@ -59,16 +63,13 @@ function TaskCard({
   function handleUpdate(updatedData) {
     updateTask(task.id, updatedData);
     setIsEditModalOpen(false);
+    toast(`Updated "${task.title}"`);
   }
 
   function handleDelete() {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this task?"
-    );
-
-    if (confirmed) {
-      deleteTask(task.id);
-    }
+    setIsDeleteOpen(false);
+    deleteTask(task.id);
+    toast(`Deleted "${task.title}"`);
   }
 
   return (
@@ -102,7 +103,7 @@ function TaskCard({
 
             <button
               onPointerDown={(event) => event.stopPropagation()}
-              onClick={handleDelete}
+              onClick={() => setIsDeleteOpen(true)}
               className="rounded-md p-1.5 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 dark:text-slate-500 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
               title="Delete task"
             >
@@ -169,6 +170,16 @@ function TaskCard({
           onCreate={handleUpdate}
           initialTask={task}
           isEditing
+        />
+      )}
+
+      {isDeleteOpen && (
+        <ConfirmDialog
+          title="Delete task?"
+          message={`"${task.title}" will be permanently removed.`}
+          confirmLabel="Delete"
+          onConfirm={handleDelete}
+          onClose={() => setIsDeleteOpen(false)}
         />
       )}
     </>

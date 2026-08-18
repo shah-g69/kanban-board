@@ -4,11 +4,14 @@ import "@fontsource-variable/inter";
 import "./index.css";
 import App from "./App.jsx";
 import { TaskProvider } from "./Context/TaskProvider";
+import { ToastProvider } from "./Context/ToastProvider";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <TaskProvider>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </TaskProvider>
   </StrictMode>
 );

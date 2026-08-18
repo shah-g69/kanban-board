@@ -11,10 +11,13 @@ export function getDueProgress(dateStr) {
   const pct =
     diffDays < 0
       ? 100
-      : Math.min(
-          100,
-          Math.round(
-            ((DUE_WINDOW_DAYS - diffDays) / DUE_WINDOW_DAYS) * 100
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            Math.round(
+              ((DUE_WINDOW_DAYS - diffDays) / DUE_WINDOW_DAYS) * 100
+            )
           )
         );
 

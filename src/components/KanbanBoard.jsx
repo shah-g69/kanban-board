@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -13,10 +13,11 @@ import { arrayMove } from "@dnd-kit/sortable";
 import KanbanColumn from "./KanbanColumn";
 import TaskCard from "./TaskCard";
 import TaskModal from "./TaskModal";
-import FiltreBar from "./FiltreBar";
+import FilterBar from "./FilterBar";
 import SearchBar from "./SearchBar";
 import EmptyState from "./EmptyState";
 import { useTasks } from "../Hooks/useTasks";
+import { ToastContext } from "../Context/toastContext";
 
 const columns = [
   {
@@ -49,6 +50,7 @@ function KanbanBoard({
   highlightedTaskId,
 }) {
   const { addTask, updateTask, columnOrder, setColumnOrder } = useTasks();
+  const { toast } = useContext(ToastContext);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTask, setActiveTask] = useState(null);
@@ -80,6 +82,7 @@ function KanbanBoard({
   function handleCreateTask(taskData) {
     addTask(taskData);
     setIsModalOpen(false);
+    toast(`Created "${taskData.title}"`);
   }
 
   function handleDragStart(event) {
@@ -164,10 +167,12 @@ function KanbanBoard({
 
   return (
     <>
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white/70 p-4 backdrop-blur-sm md:flex-row md:items-center md:justify-between dark:border-white/10 dark:bg-white/[0.03]">
-        <SearchBar value={searchTerm} onChange={onSearchChange} />
+      <div className="sticky top-16 z-20 mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white/80 p-4 backdrop-blur-xl md:flex-row md:items-center md:justify-between dark:border-white/10 dark:bg-slate-950/80">
+        <div className="shrink-0">
+          <SearchBar value={searchTerm} onChange={onSearchChange} />
+        </div>
 
-        <FiltreBar
+        <FilterBar
           status={status}
           onStatusChange={onStatusChange}
           priority={priority}
