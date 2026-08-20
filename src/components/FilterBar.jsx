@@ -1,4 +1,4 @@
-import { SlidersHorizontal, X } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 const statusOptions = [
   { value: "all", label: "All" },
@@ -28,7 +28,7 @@ const priorityDotStyles = {
 
 function SegmentControl({ options, value, onChange, dotStyles }) {
   return (
-    <div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1 dark:bg-white/5">
+    <div className="flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-white/5">
       {options.map((option) => {
         const isActive = value === option.value;
 
@@ -38,7 +38,7 @@ function SegmentControl({ options, value, onChange, dotStyles }) {
             type="button"
             onClick={() => onChange(option.value)}
             aria-pressed={isActive}
-            className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+            className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition-all ${
               isActive
                 ? "bg-white text-violet-700 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:text-violet-300 dark:ring-white/10"
                 : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
@@ -46,7 +46,7 @@ function SegmentControl({ options, value, onChange, dotStyles }) {
           >
             {option.value !== "all" && (
               <span
-                className={`h-1.5 w-1.5 rounded-full ${dotStyles[option.value]}`}
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${dotStyles[option.value]}`}
               />
             )}
             {option.label}
@@ -58,6 +58,7 @@ function SegmentControl({ options, value, onChange, dotStyles }) {
 }
 
 function FilterBar({
+  open,
   status,
   onStatusChange,
   priority,
@@ -67,54 +68,97 @@ function FilterBar({
   labels = [],
   onReset,
   hasActiveFilters = false,
+  searchTerm,
+  onSearchChange,
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="flex items-center gap-1.5 text-sm font-medium text-slate-500 dark:text-slate-400">
-        <SlidersHorizontal className="h-4 w-4" />
-        Filter
-      </span>
+    <div
+      className="grid transition-all duration-300 ease-in-out"
+      style={{
+        gridTemplateRows: open ? "1fr" : "0fr",
+        opacity: open ? 1 : 0,
+      }}
+    >
+      <div className="overflow-hidden">
+        <div className="flex flex-wrap items-end gap-6 rounded-2xl border border-slate-200/70 bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/80">
+          {/* Search */}
+          <div className="w-64 shrink-0">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Search
+            </p>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="Search tasks..."
+                className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3.5 text-sm text-slate-900 shadow-sm outline-none transition-all placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500"
+              />
+            </div>
+          </div>
 
-      <SegmentControl
-        options={statusOptions}
-        value={status}
-        onChange={onStatusChange}
-        dotStyles={statusDotStyles}
-      />
+          {/* Status */}
+          <div className="shrink-0">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Status
+            </p>
+            <SegmentControl
+              options={statusOptions}
+              value={status}
+              onChange={onStatusChange}
+              dotStyles={statusDotStyles}
+            />
+          </div>
 
-      <SegmentControl
-        options={priorityOptions}
-        value={priority}
-        onChange={onPriorityChange}
-        dotStyles={priorityDotStyles}
-      />
+          {/* Priority */}
+          <div className="shrink-0">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              Priority
+            </p>
+            <SegmentControl
+              options={priorityOptions}
+              value={priority}
+              onChange={onPriorityChange}
+              dotStyles={priorityDotStyles}
+            />
+          </div>
 
-      {labels.length > 0 && (
-        <select
-          value={label}
-          onChange={(event) => onLabelChange(event.target.value)}
-          aria-label="Filter by label"
-          className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 shadow-sm outline-none transition-all focus:border-violet-500 dark:border-white/10 dark:bg-slate-900 dark:text-slate-200"
-        >
-          <option value="all">All labels</option>
-          {labels.map((labelOption) => (
-            <option key={labelOption} value={labelOption}>
-              {labelOption}
-            </option>
-          ))}
-        </select>
-      )}
+          {/* Labels */}
+          {labels.length > 0 && (
+            <div className="shrink-0">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Label
+              </p>
+              <select
+                value={label}
+                onChange={(event) => onLabelChange(event.target.value)}
+                aria-label="Filter by label"
+                className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-medium text-slate-700 shadow-sm outline-none transition-all focus:border-violet-500 dark:border-white/10 dark:bg-slate-800 dark:text-slate-200"
+              >
+                <option value="all">All labels</option>
+                {labels.map((labelOption) => (
+                  <option key={labelOption} value={labelOption}>
+                    {labelOption}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-      {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={onReset}
-          className="flex items-center gap-1 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-slate-200"
-        >
-          <X className="h-3.5 w-3.5" />
-          Clear
-        </button>
-      )}
+          {/* Clear */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={onReset}
+              className="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear filters
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

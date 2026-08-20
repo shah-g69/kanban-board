@@ -10,11 +10,11 @@ import {
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 
+import { Plus, SlidersHorizontal } from "lucide-react";
 import KanbanColumn from "./KanbanColumn";
 import TaskCard from "./TaskCard";
 import TaskModal from "./TaskModal";
 import FilterBar from "./FilterBar";
-import SearchBar from "./SearchBar";
 import EmptyState from "./EmptyState";
 import { useTasks } from "../Hooks/useTasks";
 import { ToastContext } from "../Context/toastContext";
@@ -54,6 +54,31 @@ function KanbanBoard({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTask, setActiveTask] = useState(null);
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  // Keyboard shortcut: N to open new task modal
+  useEffect(() => {
+    function handleKeyDown(event) {
+      const tag = event.target.tagName;
+      const isTyping =
+        tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" ||
+        event.target.isContentEditable;
+
+      if (
+        !isTyping &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "n"
+      ) {
+        event.preventDefault();
+        setIsModalOpen(true);
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Bring a highlighted task into view (e.g. from the Overview deadlines list).
   useEffect(() => {
@@ -167,12 +192,38 @@ function KanbanBoard({
 
   return (
     <>
-      <div className="sticky top-16 z-20 mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white/80 p-4 backdrop-blur-xl md:flex-row md:items-center md:justify-between dark:border-white/10 dark:bg-slate-950/80">
-        <div className="shrink-0">
-          <SearchBar value={searchTerm} onChange={onSearchChange} />
+      <div className="sticky top-16 z-20 mb-6">
+        <div className="flex items-center justify-between rounded-2xl border border-slate-200/70 bg-white/80 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-slate-950/80">
+          <button
+            type="button"
+            onClick={() => setFilterOpen((prev) => !prev)}
+            className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all ${
+              filterOpen || hasActiveFilters
+                ? "bg-violet-50 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/30"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+            }`}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Filter
+            {hasActiveFilters && (
+              <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 text-[10px] font-bold text-white dark:bg-violet-400">
+                !
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="flex shrink-0 items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-violet-500 active:scale-[0.98] dark:bg-violet-500 dark:hover:bg-violet-400"
+          >
+            <Plus className="h-4 w-4" />
+            Add task
+          </button>
         </div>
 
         <FilterBar
+          open={filterOpen}
           status={status}
           onStatusChange={onStatusChange}
           priority={priority}
@@ -182,6 +233,8 @@ function KanbanBoard({
           labels={labels}
           onReset={onResetFilters}
           hasActiveFilters={hasActiveFilters}
+          searchTerm={searchTerm}
+          onSearchChange={onSearchChange}
         />
       </div>
 
@@ -225,7 +278,6 @@ function KanbanBoard({
                 id={column.id}
                 title={column.title}
                 tasks={columnTasks}
-                onAddTask={() => setIsModalOpen(true)}
                 highlightedTaskId={highlightedTaskId}
               />
             );

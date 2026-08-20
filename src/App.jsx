@@ -85,8 +85,6 @@ function App() {
         onDeleteProject={deleteProject}
         view={view}
         onNavigate={setView}
-        onExport={exportData}
-        onImport={importData}
       />
 
       {mobileSidebarOpen && (

@@ -3,7 +3,6 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { Plus } from "lucide-react";
 import TaskCard from "./TaskCard";
 
 const columnAccents = {
@@ -31,7 +30,6 @@ function KanbanColumn({
   id,
   title,
   tasks,
-  onAddTask,
   highlightedTaskId,
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -95,13 +93,6 @@ function KanbanColumn({
         </div>
       )}
 
-      <button
-        onClick={onAddTask}
-        className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 px-4 py-2.5 text-sm font-medium text-slate-500 transition-all hover:border-violet-400 hover:bg-violet-50 hover:text-violet-600 active:scale-[0.98] dark:border-white/15 dark:text-slate-400 dark:hover:border-violet-500/50 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
-      >
-        <Plus className="h-4 w-4" />
-        Add task
-      </button>
     </section>
   );
 }

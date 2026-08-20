@@ -4,17 +4,6 @@ import { CalendarDays, Check, Plus, X } from "lucide-react";
 const inputClasses =
   "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 dark:border-white/10 dark:bg-slate-800 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-violet-500";
 
-function parseLabels(text) {
-  return [
-    ...new Set(
-      text
-        .split(",")
-        .map((label) => label.trim())
-        .filter(Boolean)
-    ),
-  ];
-}
-
 function TaskModal({
   onClose,
   onCreate,
@@ -31,9 +20,13 @@ function TaskModal({
   const [priority, setPriority] = useState(
     initialTask?.priority ?? "medium"
   );
-  const [labelText, setLabelText] = useState(
-    initialTask?.labels?.join(", ") ?? ""
+  const [status, setStatus] = useState(
+    initialTask?.status ?? "todo"
   );
+  const [labelTags, setLabelTags] = useState(
+    initialTask?.labels ?? []
+  );
+  const [labelInput, setLabelInput] = useState("");
   const [dueDate, setDueDate] = useState(initialTask?.dueDate ?? "");
 
   useEffect(() => {
@@ -88,8 +81,6 @@ function TaskModal({
     };
   }, []);
 
-  const labels = parseLabels(labelText);
-
   function handleSubmit(event) {
     event.preventDefault();
 
@@ -101,33 +92,54 @@ function TaskModal({
       title: title.trim(),
       description: description.trim(),
       priority,
-      labels,
+      status,
+      labels: labelTags,
       dueDate,
     });
   }
 
+  function addLabel() {
+    const trimmed = labelInput.trim();
+    if (trimmed && !labelTags.includes(trimmed)) {
+      setLabelTags([...labelTags, trimmed]);
+      setLabelInput("");
+    }
+  }
+
   function removeLabel(labelToRemove) {
-    setLabelText(
-      labels.filter((label) => label !== labelToRemove).join(", ")
-    );
+    setLabelTags(labelTags.filter((label) => label !== labelToRemove));
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
-          onClose();
+    <>
+      <style>{`
+        @keyframes modal-overlay-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-      }}
-    >
+        @keyframes modal-panel-in {
+          from { opacity: 0; transform: translateY(16px) scale(0.97); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal-overlay-animate { animation: modal-overlay-in 0.2s ease-out; }
+        .modal-panel-animate { animation: modal-panel-in 0.25s ease-out; }
+      `}</style>
+
       <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="task-modal-title"
-        className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-900"
+        className="modal-overlay-animate fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) {
+            onClose();
+          }
+        }}
       >
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="task-modal-title"
+          className="modal-panel-animate my-8 flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-white/10 dark:bg-slate-900"
+        >
         <div className="mb-6 flex items-center justify-between">
           <h2
             id="task-modal-title"
@@ -147,7 +159,7 @@ function TaskModal({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto pr-1">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
               Title
@@ -176,20 +188,38 @@ function TaskModal({
             />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
-              Priority
-            </label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Priority
+              </label>
 
-            <select
-              value={priority}
-              onChange={(event) => setPriority(event.target.value)}
-              className={inputClasses}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-            </select>
+              <select
+                value={priority}
+                onChange={(event) => setPriority(event.target.value)}
+                className={inputClasses}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Status
+              </label>
+
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value)}
+                className={inputClasses}
+              >
+                <option value="todo">Todo</option>
+                <option value="in-progress">In Progress</option>
+                <option value="done">Done</option>
+              </select>
+            </div>
           </div>
 
           <div>
@@ -197,21 +227,36 @@ function TaskModal({
               Labels
             </label>
 
-            <input
-              type="text"
-              value={labelText}
-              onChange={(event) => setLabelText(event.target.value)}
-              placeholder="e.g. Frontend, Design"
-              className={inputClasses}
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={labelInput}
+                onChange={(event) => setLabelInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    addLabel();
+                  }
+                }}
+                placeholder="e.g. Frontend"
+                className={`${inputClasses} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={addLabel}
+                className="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
 
             <p className="mt-1.5 text-xs text-slate-400 dark:text-slate-500">
-              Separate multiple labels with commas.
+              Type a label and press Enter or click + to add.
             </p>
 
-            {labels.length > 0 && (
+            {labelTags.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {labels.map((label) => (
+                {labelTags.map((label) => (
                   <span
                     key={label}
                     className="flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-600 dark:bg-violet-500/10 dark:text-violet-300"
@@ -271,6 +316,7 @@ function TaskModal({
         </form>
       </div>
     </div>
+    </>
   );
 }
 
